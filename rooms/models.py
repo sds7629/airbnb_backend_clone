@@ -30,9 +30,18 @@ class Room(CommonModel):
         on_delete=models.CASCADE,
     )
     amenities = models.ManyToManyField("rooms.Amenity")
+    category = models.ForeignKey(
+        "categories.Category",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+    )
 
     def __str__(self):
         return self.name
+
+    def total_amenities(self):
+        return self.amenities.count()
 
 
 class Amenity(CommonModel):
