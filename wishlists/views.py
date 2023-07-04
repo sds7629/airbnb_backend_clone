@@ -14,4 +14,10 @@ class WishLists(APIView):
         return Response(serializer.data)
 
     def post(self, request):
-        pass
+        serializer = WishlistSerializer(data=request.data)
+        if serializer.is_valid():
+            wishlist = serializer.save(user=request.user)
+            serializer = WishlistSerializer(wishlist)
+            return Response(serializer.data)
+        else:
+            return Response(serializer.errors)
