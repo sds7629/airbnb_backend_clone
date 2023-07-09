@@ -24,7 +24,7 @@ class Review(CommonModel):
         null=True,
         blank=True,
         on_delete=models.CASCADE,
-        related_name="reviews", 
+        related_name="reviews",
     )
     payload = models.TextField()
     rating = models.PositiveIntegerField()

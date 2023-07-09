@@ -31,7 +31,10 @@ class Room(CommonModel):
         related_name="rooms",
         null=True,
     )
-    amenities = models.ManyToManyField("rooms.Amenity")
+    amenities = models.ManyToManyField(
+        "rooms.Amenity",
+        related_name="rooms",
+    )
     category = models.ForeignKey(
         "categories.Category",
         null=True,
