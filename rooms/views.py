@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.shortcuts import render
 from rest_framework.response import Response
 from .serializer import (
@@ -15,7 +16,11 @@ from rest_framework.exceptions import (
 )
 from .models import Room, Amenity
 from categories.models import Category
+from reviews.serializers import ReviewSerializer
 from rest_framework.status import HTTP_204_NO_CONTENT
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
+from medias.models import Photo
+from medias.serializer import PhotoSerializer
 
 
 class Amenity(APIView):
@@ -46,8 +51,28 @@ class AmenityDetail(APIView):
         serializer = AmenityDetailSerializer(amenity)
         return Response(serializer.data)
 
+    def put(self, request, pk):
+        amenity = self.get_object(pk)
+        serializer = AmenityDetailSerializer(
+            amenity,
+            data=request.data,
+            partial=True,
+        )
+        if serializer.is_valid():
+            update_amenity = serializer.save()
+            return Response(AmenityDetailSerializer(update_amenity).data)
+        else:
+            return Response(serializer.errors)
+
+    def delete(self, request, pk):
+        amenity = self.get_object(pk)
+        amenity.delete()
+        return Response(status=HTTP_204_NO_CONTENT)
+
 
 class Rooms(APIView):
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
     def get(self, request):
         all_rooms = Room.objects.all()
         serializer = RoomListSerializer(all_rooms, many=True)
@@ -85,6 +110,8 @@ class Rooms(APIView):
 
 
 class RoomDetail(APIView):
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
     def get_objects(self, pk):
         try:
             return Room.objects.get(pk=pk)
@@ -93,15 +120,14 @@ class RoomDetail(APIView):
 
     def get(self, request, pk):
         room = self.get_objects(pk)
-        serializer = RoomDetailSerializer(room)
+        serializer = RoomDetailSerializer(
+            room,
+            context={"request": request},
+        )
         return Response(serializer.data)
 
     def put(self, request, pk):
         room = self.get_objects(pk)
-        if not request.user.is_authenticated:
-            raise NotAuthenticated
-        if room.owner != request.user:
-            raise PermissionDenied
         serializer = RoomDetailSerializer(
             room,
             data=request.data,
@@ -126,13 +152,56 @@ class RoomDetail(APIView):
 
     def delete(self, request, pk):
         room = self.get_objects(pk)
-        if not request.user.is_authenticated:
-            raise NotAuthenticated
         if room.owner != request.user:
             raise PermissionDenied
 
         room.delete()
         return Response(status=HTTP_204_NO_CONTENT)
 
-    # def get(self, request, pk):
-    #     pass
+
+class RoomReviews(APIView):
+    def get_object(self, pk):
+        try:
+            return Room.objects.get(pk=pk)
+        except Room.DoesNotExist:
+            raise NotFound
+
+    def get(self, request, pk):
+        try:
+            page = request.GET.get("page", 1)
+            print(page)
+            page = int(page)
+        except ValueError:
+            page = settings.PAGE_SIZE
+        page_size = 3
+        start = (page - 1) * page_size
+        end = start + page_size
+        room = self.get_object(pk)
+        serializer = ReviewSerializer(
+            room.reviews.all()[start:end],
+            many=True,
+        )
+        return Response(serializer.data)
+
+
+class RoomPhotos(APIView):
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
+    def get_object(self, pk):
+        try:
+            return Room.objects.get(pk=pk)
+        except Room.DoesNotExist:
+            raise NotFound
+
+    def post(self, request, pk):
+        room = self.get_object(pk)
+
+        if request.user != room.owner:
+            raise PermissionError
+        serializer = PhotoSerializer(data=request.data)
+        if serializer.is_valid():
+            photo = serializer.save(room=room)
+            serializer = PhotoSerializer(photo)
+            return Response(serializer.data)
+        else:
+            return Response(serializer.errors)
