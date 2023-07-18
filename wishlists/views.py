@@ -9,15 +9,15 @@ class WishLists(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        all_wishlists = Wishlist.objects.filter(user=request.user)
-        serializer = WishlistSerializer(all_wishlists, many=True)
+        wisilists = Wishlist.objects.filter(user=request.user)
+        serializer = WishlistSerializer(wisilists, many=True)
         return Response(serializer.data)
 
     def post(self, request):
         serializer = WishlistSerializer(data=request.data)
         if serializer.is_valid():
-            wishlist = serializer.save(user=request.user)
-            serializer = WishlistSerializer(wishlist)
+            name = serializer.save(user=request.user)
+            serializer = WishlistSerializer(name)
             return Response(serializer.data)
         else:
             return Response(serializer.errors)
