@@ -1,6 +1,8 @@
 from django.conf import settings
 from django.shortcuts import render
 from rest_framework.response import Response
+from rest_framework import mixins
+from rest_framework.generics import GenericAPIView
 from .serializer import (
     RoomListSerializer,
     RoomDetailSerializer,
@@ -21,6 +23,8 @@ from rest_framework.status import HTTP_204_NO_CONTENT
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from medias.models import Photo
 from medias.serializer import PhotoSerializer
+from bookings.models import Booking
+from bookings.serializer import PublicBookingSerializer
 
 
 class Amenity(APIView):
@@ -220,3 +224,26 @@ class RoomPhotos(APIView):
             return Response(serializer.data)
         else:
             return Response(serializer.errors)
+
+
+class RoomBookings(
+    mixins.RetrieveModelMixin,
+    mixins.CreateModelMixin,
+    GenericAPIView,
+):
+    def get_room(self, pk):
+        try:
+            Room.objects.get(pk=pk)
+        except:
+            raise NotFound
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        queryset = Booking.objects.filter(room=kwargs["room"])
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
+    serializer_class = PublicBookingSerializer
+
+    def get(self, request, pk, *args, **kwargs):
+        return self.retrieve(request, *args, **kwargs)
