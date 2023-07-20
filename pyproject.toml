@@ -12,6 +12,7 @@ python = "^3.11"
 django = "^4.2.2"
 pillow = "^9.5.0"
 djangorestframework = "^3.14.0"
+django-filter = "^23.2"
 
 
 

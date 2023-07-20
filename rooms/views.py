@@ -1,8 +1,10 @@
 from django.conf import settings
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
+from django.utils import timezone
 from rest_framework.response import Response
-from rest_framework import mixins
-from rest_framework.generics import GenericAPIView
+from rest_framework import mixins, filters
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import generics
 from .serializer import (
     RoomListSerializer,
     RoomDetailSerializer,
@@ -227,23 +229,29 @@ class RoomPhotos(APIView):
 
 
 class RoomBookings(
-    mixins.RetrieveModelMixin,
+    mixins.ListModelMixin,
     mixins.CreateModelMixin,
-    GenericAPIView,
+    generics.GenericAPIView,
 ):
+    serializer_class = PublicBookingSerializer
+
     def get_room(self, pk):
         try:
-            Room.objects.get(pk=pk)
+            return Room.objects.get(pk=pk)
         except:
             raise NotFound
 
-    def retrieve(self, request, *args, **kwargs):
-        instance = self.get_object()
-        queryset = Booking.objects.filter(room=kwargs["room"])
-        serializer = self.get_serializer(instance)
-        return Response(serializer.data)
+    def get_queryset(self):
+        room = self.get_room(self.kwargs["pk"])
+        now = timezone.localtime(timezone.now()).date()
+        return Booking.objects.filter(
+            room=room,
+            kind=Booking.BookingKindChoices.ROOM,
+            check_in__gt=now,
+        )
 
-    serializer_class = PublicBookingSerializer
+    def get(self, request, *args, **kwargs):
+        return self.list(request)
 
-    def get(self, request, pk, *args, **kwargs):
-        return self.retrieve(request, *args, **kwargs)
+    def post(self, request, *args, **kwargs):
+        return self.create(request)
