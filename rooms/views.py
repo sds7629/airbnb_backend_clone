@@ -26,7 +26,7 @@ from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from medias.models import Photo
 from medias.serializer import PhotoSerializer
 from bookings.models import Booking
-from bookings.serializer import PublicBookingSerializer
+from bookings.serializer import PublicBookingSerializer, CreateRoomBookingSerializer
 
 
 class Amenity(APIView):
@@ -230,7 +230,6 @@ class RoomPhotos(APIView):
 
 class RoomBookings(
     mixins.ListModelMixin,
-    mixins.CreateModelMixin,
     generics.GenericAPIView,
 ):
     serializer_class = PublicBookingSerializer
@@ -254,4 +253,15 @@ class RoomBookings(
         return self.list(request)
 
     def post(self, request, *args, **kwargs):
-        return self.create(request)
+        room = self.get_room(kwargs["pk"])
+        serializer = CreateRoomBookingSerializer(data=request.data)
+        if serializer.is_valid():
+            booking = serializer.save(
+                room=room,
+                user=request.user,
+                kind=Booking.BookingKindChoices.ROOM,
+            )
+            serializer = PublicBookingSerializer(booking)
+            return Response(serializer.data)
+        else:
+            return Response(serializer.errors)
