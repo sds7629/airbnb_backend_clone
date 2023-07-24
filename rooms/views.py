@@ -263,12 +263,5 @@ class RoomBookings(
             )
             serializer = PublicBookingSerializer(booking)
             return Response(serializer.data)
-
-    def post(self, request, pk):
-        room = self.get_room(pk)
-        serializer = CreateRoomBookingSerializer(data=request.data)
-        if serializer.is_valid():
-            return Response({"ok": True})
-
         else:
             return Response(serializer.errors)
