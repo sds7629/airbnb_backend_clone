@@ -2,7 +2,7 @@ from rest_framework import serializers
 from .models import Room, Amenity
 from categories.serializer import CategorySerializer
 from medias.serializer import PhotoSerializer
-from users.serializer import TinyUserSerializer
+from users.serializers import TinyUserSerializer
 from reviews.models import Review
 from wishlists.models import Wishlist
 from django.utils import timezone

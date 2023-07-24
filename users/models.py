@@ -27,7 +27,7 @@ class User(AbstractUser):
         max_length=150,
         default="",
     )
-    avartar = models.ImageField(blank=True)
+    avartar = models.URLField(blank=True)
     is_host = models.BooleanField(
         null=True,
     )
