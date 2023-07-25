@@ -6,7 +6,7 @@ from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnl
 from rest_framework.exceptions import ParseError
 from . import serializers
 from categories.models import Category
-from .models import Experience
+from .models import Experience, Perk
 
 
 class Experiences(
@@ -39,3 +39,58 @@ class Experiences(
 
     def post(self, request, *args, **kwargs):
         return self.create(request, *args, **kwargs)
+
+
+class ExperiencesDetail(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
+    queryset = Experience.objects.all()
+    serializer_class = serializers.DetailExprienceSerializer
+
+    def get(self, request, *args, **kwargs):
+        return self.retrieve(request)
+
+    def put(self, request, *args, **kwargs):
+        return self.update(request)
+
+    def delete(self, request, *args, **kwargs):
+        return self.destroy(request)
+
+
+class Perks(
+    generics.ListCreateAPIView,
+):
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
+    queryset = Perk.objects.all()
+    serializer_class = serializers.PerkSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        headers = self.get_success_headers(serializer.data)
+        return Response(
+            serializer.data, status=status.HTTP_201_CREATED, headers=headers
+        )
+
+    def get(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        return self.create(request, *args, **kwargs)
+
+
+class PerkDetail(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticatedOrReadOnly]
+    queryset = Perk.objects.all()
+    serializer_class = serializers.PerkSerializer
+
+    def get(self, request, *args, **kwargs):
+        return self.retrieve(request, *args, **kwargs)
+
+    def put(self, request, *args, **kwargs):
+        return self.update(request)
+
+    def delete(self, request, *args, **kwargs):
+        return self.destroy(request)
