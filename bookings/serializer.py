@@ -3,6 +3,27 @@ from .models import Booking
 from django.utils import timezone
 
 
+class CreateExperienceBookingSerializer(serializers.ModelSerializer):
+    experience_time = serializers.DateTimeField()
+
+    def validate_experience_time(self, value):
+        now_date = timezone.localtime(timezone.now()).date()
+        now_time = timezone.localtime(timezone.now()).time()
+        if now_date > value.date():
+            raise serializers.ValidationError("지나간 날짜는 예약할 수 없어요!")
+        if now_time > value.time():
+            raise serializers.ValidationError("지나간 시간은 예약 할 수 없어요!")
+        else:
+            return value
+
+    class Meta:
+        model = Booking
+        fields = (
+            "experience_time",
+            "guest",
+        )
+
+
 class CreateRoomBookingSerializer(serializers.ModelSerializer):
     check_in = serializers.DateField()
     check_out = serializers.DateField()
