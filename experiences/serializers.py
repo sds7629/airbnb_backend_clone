@@ -23,10 +23,17 @@ class PerkSerializer(ModelSerializer):
         fields = "__all__"
 
 
-class DetailExprienceSerializer(ModelSerializer):
-    perks = PerkSerializer(read_only=True)
+class DetailExperienceSerializer(ModelSerializer):
     category = CategorySerializer(read_only=True)
 
     class Meta:
         model = Experience
         fields = "__all__"
+
+
+class PerkExperienceSerializer(ModelSerializer):
+    perks = PerkSerializer(read_only=True, many=True)
+
+    class Meta:
+        model = Experience
+        fields = ("perks",)

@@ -30,9 +30,7 @@ class Experiences(
                 host=request.user,
             )
             headers = self.get_success_headers(serializer.data)
-            return Response(
-                serializer.data, status=status.HTTP_201_CREATED, headers=headers
-            )
+            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
     def get(self, request, *args, **kwargs):
         return self.list(request, *args, **kwargs)
@@ -45,16 +43,37 @@ class ExperiencesDetail(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticatedOrReadOnly]
 
     queryset = Experience.objects.all()
-    serializer_class = serializers.DetailExprienceSerializer
+    serializer_class = serializers.DetailExperienceSerializer
 
     def get(self, request, *args, **kwargs):
-        return self.retrieve(request)
+        pk = kwargs["pk"]
+        if Experience.objects.get(pk=pk).category.kind != Category.CategoryKindChoices.EXPERIENCES:
+            raise ParseError("액티비티 카테고리가 아닙니다!")
+        else:
+            return self.retrieve(request)
 
     def put(self, request, *args, **kwargs):
         return self.update(request)
 
     def delete(self, request, *args, **kwargs):
         return self.destroy(request)
+
+
+class ExperiencePerk(generics.RetrieveAPIView):
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
+    queryset = Experience.objects.all()
+    serializer_class = serializers.PerkExperienceSerializer
+
+    def get(self, request, *args, **kwargs):
+        return self.retrieve(request)
+
+
+class ExperienceBooking(
+    generics.RetrieveAPIView,
+    generics.CreateAPIView,
+):
+    pass
 
 
 class Perks(
@@ -70,9 +89,7 @@ class Perks(
         serializer.is_valid(raise_exception=True)
         serializer.save()
         headers = self.get_success_headers(serializer.data)
-        return Response(
-            serializer.data, status=status.HTTP_201_CREATED, headers=headers
-        )
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
     def get(self, request, *args, **kwargs):
         return self.list(request, *args, **kwargs)
@@ -84,7 +101,7 @@ class Perks(
 class PerkDetail(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticatedOrReadOnly]
     queryset = Perk.objects.all()
-    serializer_class = serializers.PerkSerializer
+    serializer_class = serializers.PerkExperienceSerializer
 
     def get(self, request, *args, **kwargs):
         return self.retrieve(request, *args, **kwargs)
