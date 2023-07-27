@@ -3,12 +3,13 @@ from rest_framework import generics, mixins
 from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
-from rest_framework.exceptions import ParseError, NotFound
+from rest_framework.exceptions import ParseError, NotFound, PermissionDenied
 from django.utils import timezone
 from . import serializers
 from bookings.serializer import (
     CreateExperienceBookingSerializer,
     PublicBookingSerializer,
+    DetailBookingSerializer,
 )
 from bookings.models import Booking
 from categories.models import Category
@@ -36,9 +37,7 @@ class Experiences(
                 host=request.user,
             )
             headers = self.get_success_headers(serializer.data)
-            return Response(
-                serializer.data, status=status.HTTP_201_CREATED, headers=headers
-            )
+            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
     def get(self, request, *args, **kwargs):
         return self.list(request, *args, **kwargs)
@@ -55,10 +54,7 @@ class ExperiencesDetail(generics.RetrieveUpdateDestroyAPIView):
 
     def get(self, request, *args, **kwargs):
         pk = kwargs["pk"]
-        if (
-            Experience.objects.get(pk=pk).category.kind
-            != Category.CategoryKindChoices.EXPERIENCES
-        ):
+        if Experience.objects.get(pk=pk).category.kind != Category.CategoryKindChoices.EXPERIENCES:
             raise ParseError("액티비티 카테고리가 아닙니다!")
         else:
             return self.retrieve(request)
@@ -110,15 +106,54 @@ class ExperienceBooking(generics.ListCreateAPIView):
             kind=Booking.BookingKindChoices.EXPERIENCE,
         )
         headers = self.get_success_headers(serializer.data)
-        return Response(
-            serializer.data, status=status.HTTP_201_CREATED, headers=headers
-        )
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
     def get(self, request, *args, **kwargs):
         return self.list(request)
 
     def post(self, request, *args, **kwargs):
         return self.create(request)
+
+
+class ExperienceDetailBooking(
+    generics.ListAPIView,
+    generics.UpdateAPIView,
+    generics.DestroyAPIView,
+):
+    permission_classes = [IsAuthenticated]
+
+    serializer_class = DetailBookingSerializer
+
+    def get_experience(self, pk):
+        try:
+            return Experience.objects.get(pk=pk)
+        except:
+            raise NotFound
+
+    def get_queryset(self):
+        experience = self.get_experience(self.kwargs["pk"])
+        now = timezone.localtime(timezone.now())
+        return Booking.objects.filter(
+            pk=self.kwargs["booking_pk"],
+            experience=experience,
+            kind=Booking.BookingKindChoices.EXPERIENCE,
+            experience_time__gte=now,
+        )
+
+    def get(self, request, *args, **kwargs):
+        return self.list(request)
+
+    def put(self, request, *args, **kwargs):
+        return self.update(request)
+
+    def delete(self, request, *args, **kwargs):
+        instance = self.get_queryset()
+
+        if instance[0].user != request.user:
+            raise PermissionDenied
+        else:
+            instance[0].delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class Perks(
@@ -134,9 +169,7 @@ class Perks(
         serializer.is_valid(raise_exception=True)
         serializer.save()
         headers = self.get_success_headers(serializer.data)
-        return Response(
-            serializer.data, status=status.HTTP_201_CREATED, headers=headers
-        )
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
     def get(self, request, *args, **kwargs):
         return self.list(request, *args, **kwargs)

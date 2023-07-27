@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from users.serializers import TinyUserSerializer
 from .models import Booking
 from django.utils import timezone
 
@@ -71,4 +72,13 @@ class PublicBookingSerializer(serializers.ModelSerializer):
             "check_out",
             "experience_time",
             "guest",
+            "user",
         )
+
+
+class DetailBookingSerializer(serializers.ModelSerializer):
+    user = TinyUserSerializer(read_only=True)
+
+    class Meta:
+        model = Booking
+        fields = "__all__"
