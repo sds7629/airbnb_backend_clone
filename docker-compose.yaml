@@ -1,0 +1,66 @@
+version: '3'
+
+services:
+  nginx:
+    container_name: nginx
+    build: ./nginx
+    ports:
+      - "80:80"
+    volumes:
+      # - bnb_static:/usr/share/nginx/html
+      - bnb_static:/app/static/
+      - bnb_media:/app/media/
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - web
+
+  db:
+    image: postgres:latest
+    volumes:
+      - bnb_db:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=postgres
+    ports:
+      - "5432:5432"
+
+  web:
+    container_name: bnb_clone
+    build:
+      context: ./airbnb-clone-backend
+      dockerfile: Dockerfile
+    command: python3 manage.py makemigrations && python3 manage.py migrate && gunicorn config.wsgi:application --bind 0.0.0.0:8000
+    ports:
+      - "8000:8000"
+    expose:
+      - "8000"
+    depends_on:
+      - db
+    restart: always
+    volumes:
+      - bnb_static:/app/static/
+      - bnb_media:/app/uploads/
+    env_file:
+      - ./airbnb-clone-backend/.env.prod
+
+  pgadmin:
+    image: dpage/pgadmin4
+    restart: always
+    container_name: pgadmin4
+    ports:
+      - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: root@root.com
+      PGADMIN_DEFAULT_PASSWORD: password
+    # 볼륨 설정
+    volumes:
+      - ./data/pgadmin/:/var/lib/pgadmin
+volumes:
+  bnb_media:
+    external: true
+  bnb_static:
+    external: true
+  bnb_db:
+    external: true
+
